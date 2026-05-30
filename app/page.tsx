@@ -1,92 +1,76 @@
-import { supabase, Slot } from '@/lib/supabase';
-import Link from 'next/link';
+"use client";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 
-function formatDate(dateStr: string): string {
-  const d = new Date(dateStr + 'T00:00:00');
-  return d.toLocaleDateString('en-EG', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-}
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
 
-function formatTime(timeStr: string): string {
-  const [h, m] = timeStr.split(':').map(Number);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return `${hour}:${m.toString().padStart(2, '0')} ${suffix}`;
-}
+type Slot = {
+  id: string;
+  slot_label: string;
+  slot_date: string;
+  slot_time: string;
+};
 
-async function getSlots(): Promise<Record<string, Slot[]>> {
-  const { data, error } = await supabase
-    .from('available_slots')
-    .select('*')
-    .eq('is_available', true)
-    .gte('slot_date', new Date().toISOString().split('T')[0])
-    .order('slot_date', { ascending: true })
-    .order('slot_time', { ascending: true });
+export default function Home() {
+  const router = useRouter();
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  if (error || !data) return {};
-
-  return data.reduce((acc: Record<string, Slot[]>, slot: Slot) => {
-    if (!acc[slot.slot_date]) acc[slot.slot_date] = [];
-    acc[slot.slot_date].push(slot);
-    return acc;
-  }, {});
-}
-
-export const revalidate = 60;
-
-export default async function HomePage() {
-  const slotsByDate = await getSlots();
-  const dates = Object.keys(slotsByDate);
+  useEffect(() => {
+    supabase
+      .from("available_slots")
+      .select("*")
+      .order("slot_date", { ascending: true })
+      .order("slot_time", { ascending: true })
+      .then(({ data }) => {
+        setSlots(data || []);
+        setLoading(false);
+      });
+  }, []);
 
   return (
-    <div>
-      {/* Hero */}
-      <div className="text-center mb-10">
-        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-brand-50 border-2 border-brand-100 mb-4 text-3xl">
-          🩺
+    <main className="min-h-screen bg-slate-50">
+      <header className="bg-teal-700 text-white py-10 px-4 text-center">
+        <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4">
+          <span className="text-3xl">&#129658;</span>
         </div>
-        <h2 className="text-2xl font-bold text-slate-800 mb-2">Book a Therapy Session</h2>
-        <p className="text-slate-500 max-w-md mx-auto">
-          Choose an available time slot below. Sessions are 50 minutes and take place via Google Meet.
-          Payment is made offline via Instapay or Vodafone Cash after booking.
-        </p>
-      </div>
+        <h1 className="text-2xl font-bold">Dr. Saad El Mahdy</h1>
+        <p className="text-teal-200 mt-1">MD Therapy &mdash; Online Sessions via Google Meet</p>
+      </header>
 
-      {/* Slot listing */}
-      {dates.length === 0 ? (
-        <div className="text-center py-16 text-slate-400">
-          <p className="text-4xl mb-3">📅</p>
-          <p className="font-medium">No available slots right now.</p>
-          <p className="text-sm mt-1">Please check back soon.</p>
-        </div>
-      ) : (
-        <div className="space-y-6">
-          {dates.map((date) => (
-            <div key={date} className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm">
-              <div className="bg-brand-50 px-5 py-3 border-b border-brand-100">
-                <h3 className="font-semibold text-brand-700 text-sm">{formatDate(date)}</h3>
-              </div>
-              <div className="p-4 grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {slotsByDate[date].map((slot) => (
-                  <Link
-                    key={slot.id}
-                    href={`/book/${slot.id}`}
-                    className="flex flex-col items-center justify-center py-3 px-2 rounded-xl border border-slate-200 bg-slate-50 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-700 transition-all text-center group"
-                  >
-                    <span className="text-base font-semibold">{formatTime(slot.slot_time)}</span>
-                    <span className="text-xs text-slate-400 mt-0.5 group-hover:text-brand-500">{slot.duration_minutes} min</span>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Payment info teaser */}
-      <div className="mt-10 bg-amber-50 border border-amber-200 rounded-2xl p-5 text-sm text-amber-800">
-        <p className="font-semibold mb-1">💳 Payment is offline</p>
-        <p>After you book, you'll receive Instapay and Vodafone Cash details to complete your payment. Your session is confirmed once the doctor reviews your booking.</p>
-      </div>
-    </div>
+      <section className="max-w-2xl mx-auto px-4 py-10">
+        <h2 className="text-lg font-semibold text-slate-700 mb-4">Available Sessions</h2>
+        {loading ? (
+          <p className="text-slate-400 text-center py-16">Loading available slots&hellip;</p>
+        ) : slots.length === 0 ? (
+          <div className="text-center py-16 text-slate-500">
+            <p className="text-4xl mb-3">&#128197;</p>
+            <p>No available slots at the moment. Please check back soon.</p>
+          </div>
+        ) : (
+          <div className="grid gap-3">
+            {slots.map((slot) => (
+              <button
+                key={slot.id}
+                onClick={() => router.push(`/book/${slot.id}`)}
+                className="bg-white border border-slate-200 hover:border-teal-400 hover:shadow-md rounded-xl p-4 text-left transition group"
+              >
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-semibold text-slate-800">{slot.slot_label}</p>
+                    <p className="text-sm text-slate-500 mt-0.5">{slot.slot_date} &bull; {slot.slot_time}</p>
+                  </div>
+                  <span className="text-teal-600 group-hover:translate-x-1 transition-transform text-xl">&#8594;</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
   );
 }
