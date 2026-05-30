@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { cookies } from "next/headers";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,12 +13,16 @@ function isAuthenticated(req: NextRequest): boolean {
 
 function generateMeetLink(): string {
   const chars = "abcdefghijklmnopqrstuvwxyz";
-  const seg = (n: number) => Array.from({ length: n }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+  const seg = (n: number) =>
+    Array.from({ length: n }, () =>
+      chars[Math.floor(Math.random() * chars.length)]
+    ).join("");
   return `https://meet.google.com/${seg(3)}-${seg(4)}-${seg(3)}`;
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthenticated(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAuthenticated(req))
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { data, error } = await supabase
     .from("bookings")
@@ -31,10 +34,12 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  if (!isAuthenticated(req)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!isAuthenticated(req))
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const { id, action } = await req.json();
-  if (!id || !action) return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
+  if (!id || !action)
+    return NextResponse.json({ error: "Missing id or action" }, { status: 400 });
 
   if (action === "confirm") {
     const meetLink = generateMeetLink();

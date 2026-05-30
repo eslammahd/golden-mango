@@ -6,11 +6,17 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export default async function BookingStatus({ params }: { params: { id: string } }) {
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export default async function BookingStatus({ params }: Props) {
+  const { id } = await params;
+
   const { data: booking, error } = await supabase
     .from("bookings")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .single();
 
   if (error || !booking) {
@@ -18,16 +24,30 @@ export default async function BookingStatus({ params }: { params: { id: string }
       <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
         <div className="text-center">
           <p className="text-red-600 font-medium">Booking not found.</p>
-          <Link href="/" className="text-teal-600 underline mt-2 inline-block">Go back home</Link>
+          <Link href="/" className="text-teal-600 underline mt-2 inline-block">
+            Go back home
+          </Link>
         </div>
       </main>
     );
   }
 
   const statusConfig: Record<string, { label: string; color: string; icon: string }> = {
-    pending: { label: "Pending Confirmation", color: "text-amber-600 bg-amber-50 border-amber-200", icon: "⏳" },
-    confirmed: { label: "Confirmed ✔️", color: "text-green-700 bg-green-50 border-green-200", icon: "✅" },
-    cancelled: { label: "Cancelled", color: "text-red-600 bg-red-50 border-red-200", icon: "❌" },
+    pending: {
+      label: "Pending Confirmation",
+      color: "text-amber-600 bg-amber-50 border-amber-200",
+      icon: "\u23f3",
+    },
+    confirmed: {
+      label: "Confirmed",
+      color: "text-green-700 bg-green-50 border-green-200",
+      icon: "\u2705",
+    },
+    cancelled: {
+      label: "Cancelled",
+      color: "text-red-600 bg-red-50 border-red-200",
+      icon: "\u274c",
+    },
   };
 
   const st = statusConfig[booking.status] || statusConfig.pending;
@@ -35,21 +55,20 @@ export default async function BookingStatus({ params }: { params: { id: string }
   return (
     <main className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-md">
-        {/* Header */}
         <div className="text-center mb-8">
           <div className="w-14 h-14 bg-teal-600 rounded-full flex items-center justify-center mx-auto mb-3">
-            <span className="text-2xl">🩺</span>
+            <span className="text-2xl">&#129658;</span>
           </div>
           <h1 className="text-xl font-bold text-slate-800">Booking Status</h1>
           <p className="text-slate-500 text-sm mt-1">Dr. Saad El Mahdy</p>
         </div>
 
-        {/* Status badge */}
         <div className={`border rounded-xl p-4 text-center mb-6 ${st.color}`}>
-          <p className="text-lg font-semibold">{st.icon} {st.label}</p>
+          <p className="text-lg font-semibold">
+            {st.icon} {st.label}
+          </p>
         </div>
 
-        {/* Details */}
         <div className="space-y-3 text-sm">
           <div className="flex justify-between">
             <span className="text-slate-500">Patient</span>
@@ -71,10 +90,9 @@ export default async function BookingStatus({ params }: { params: { id: string }
           )}
         </div>
 
-        {/* Google Meet link — only when confirmed */}
         {booking.status === "confirmed" && booking.meet_link && (
           <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 text-center">
-            <p className="text-blue-800 font-semibold mb-2">🎥 Your session is ready!</p>
+            <p className="text-blue-800 font-semibold mb-2">Your session is ready!</p>
             <a
               href={booking.meet_link}
               target="_blank"
@@ -87,16 +105,17 @@ export default async function BookingStatus({ params }: { params: { id: string }
           </div>
         )}
 
-        {/* Pending nudge */}
         {booking.status === "pending" && (
           <div className="mt-6 bg-amber-50 border border-amber-200 rounded-xl p-4 text-sm text-amber-800 text-center">
-            <p>Your booking is under review. You\'ll receive confirmation soon.</p>
+            <p>Your booking is under review. You will receive confirmation soon.</p>
             <p className="mt-1 text-xs">Please make sure payment has been sent.</p>
           </div>
         )}
 
         <div className="mt-6 text-center">
-          <Link href="/" className="text-teal-600 hover:underline text-sm">← Book another session</Link>
+          <Link href="/" className="text-teal-600 hover:underline text-sm">
+            &larr; Book another session
+          </Link>
         </div>
       </div>
     </main>
